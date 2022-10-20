@@ -41,6 +41,7 @@ python -m cellsium simulate \
     \
     -o simulate \
     --Output GenericMaskOutput \
+    --Output COCOOutput \
     \
     -c mycomodel.py:Cell \
     -p
