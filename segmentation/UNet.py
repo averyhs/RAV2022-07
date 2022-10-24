@@ -1,9 +1,16 @@
+# ============================================================= #
+# U-Net-Id                                                      #
+#                                                               #
+# This file contains building block classes for U-Net, and the  #
+# U-Net-Id class itself. All subclass PyTorch's nn.Module.      #
+# ============================================================= #
+
 import torch
 import torch.nn as nn
 
-########################
-## NETWORK COMPONENTS ##
-########################
+
+# NETWORK COMPONENTS #
+# ------------------ #
 
 class DoubleConv(nn.Module):
     '''
@@ -148,9 +155,9 @@ class Bottleneck(nn.Module):
         return x
 
 
-###########
-## U-NET ##
-###########
+
+# U-NET #
+# ----- #
 
 class UNet(nn.Module):
     def __init__(self):
