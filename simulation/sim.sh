@@ -40,7 +40,6 @@ python -m cellsium simulate \
     -t Seed=6 \
     \
     -o simulate \
-    --Output GenericMaskOutput \
     --Output COCOOutput \
     \
     -c mycomodel.py:Cell \
