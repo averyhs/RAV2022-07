@@ -15,7 +15,7 @@ def draw_masks(im_data):
     Create object mask, border mask, inner mask for an image (Intended for internal use).
 
     For a single image from a COCO-formatted dict, use the object masks to create a 
-    border mask and an inner mask. The masks are returned as a single 3-channel image --TODO
+    border mask and an inner mask. The masks are returned as a single 3-channel image 
     (as a numpy array), with each mask drawn in a separate channel.
     
     The border mask for each object is obtained by finding the edges of the object mask 
@@ -75,7 +75,7 @@ def draw_masks(im_data):
     border_mask = border_mask[pad:-pad, pad:-pad] # crop padded border mask
     inner_mask = 255*(inner_mask[pad:-pad, pad:-pad]).astype(np.uint8) # boolean -> 255 binary mask
     
-    return cell_mask, border_mask, inner_mask
+    return np.stack((cell_mask, border_mask, inner_mask), axis=-1)
 
 def read_coco_file(coco_filepath):
     '''
@@ -96,8 +96,8 @@ def coco_to_masks(cocodict, test=True):
 
     Takes a dictionary (in COCO JSON structure, defining a series of images and the 
     borders of all the objects contained in each) and produces 3 masks (as one 3-channel 
-    image--TODO) - one of the objects as defined by the COCO file, one of thickened 
-    object outlines, and one of the inner parts of the objects (the inner mask of an 
+    image) - one of the objects as defined by the COCO file, one of thickened object 
+    outlines, and one of the inner parts of the objects (the inner mask of an 
     object is an erosion of the object mask).
 
     It is assumed that the images in the COCO file are square. Masks will not be correctly 
@@ -111,14 +111,14 @@ def coco_to_masks(cocodict, test=True):
         test (boolean): Run in test mode if True (default is True)
     
     Returns:
-        ndarray: Array of the masks for all the images, each with shape 3xImage_shape--TODO
+        ndarray: Array of the masks for all the images, each with shape 3xImage_shape
     '''
     cocodict = imantics.Dataset.from_coco(cocodict) # convert to imantics type
 
     for image in cocodict.iter_images(): # for each image
-        cells, borders, inners = draw_masks(image) # TODO: single 3-channel image instead of 3 separate ims
+        masks = draw_masks(image)
         
         if test:
             break
     
-    return cells, borders, inners
+    return masks
