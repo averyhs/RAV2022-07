@@ -17,11 +17,6 @@ def draw_masks(im_data):
     For a single image from a COCO-formatted dict, use the object masks to create a 
     border mask and an inner mask. The masks are returned as a single 3-channel image 
     (as a numpy array), with each mask drawn in a separate channel.
-    
-    The border mask for each object is obtained by finding the edges of the object mask 
-    and drawing them thicker, extending both inside and outside the object. The inner 
-    mask for each object is obtained by performing an erosion operation on the object 
-    mask.
 
     It is assumed that the image is square (equal height and width dims). Masks will 
     not be correctly produced if image is not square.
@@ -32,6 +27,11 @@ def draw_masks(im_data):
     Returns:
         ndarray: Masks as 3-channel image (numpy array)
     '''
+    # The border mask for each object is obtained by finding the edges of the object mask 
+    # and drawing them thicker, extending both inside and outside the object. The inner 
+    # mask for each object is obtained by performing an erosion operation on the object 
+    # mask.
+
     # Borders: for borders, images will be expanded and then cropped
     # so that outlines will not be drawn along the edges (for objects cut off by image edge)
     # Set params:
@@ -94,11 +94,9 @@ def coco_to_masks(cocodict, test=True):
     '''
     Creates masks from a COCO-structured dictionary.
 
-    Takes a dictionary (in COCO JSON structure, defining a series of images and the 
-    borders of all the objects contained in each) and produces 3 masks (as one 3-channel 
-    image) - one of the objects as defined by the COCO file, one of thickened object 
-    outlines, and one of the inner parts of the objects (the inner mask of an 
-    object is an erosion of the object mask).
+    Takes a dictionary (in COCO JSON structure) and produces 3 masks (as single 
+    3-channel image) - one of the objects, one of thick object outlines, and one 
+    of the inner parts of the objects.
 
     It is assumed that the images in the COCO file are square. Masks will not be correctly 
     produced if images are not square.
