@@ -128,16 +128,15 @@ def coco_to_masks(cocodict, test=True):
     
     return masks
 
-def patch_images(image_list, patch_size):
+def patch_images(image_list, patch_size, channels=1):
     '''
     Patchify a list of images.
     
     Patchify a list of images - the images will be cropped and split into patches, producing a 1D list of
-    all 2D patches (ordered so images can be recovered).
+    all 2D patches (ordered so images can be recovered). Supports multichannel and single channel images.
     
     Assumptions:  
     - All images have the same shape  
-    - Images have only 1 channel  
     - Patches are square  
     
     Process:  
@@ -149,35 +148,55 @@ def patch_images(image_list, patch_size):
         patch_size (int): Size of patches (side length in pixels of each square patch)
     
     Returns:
-        np.array: 3D array of patchified images (1D list of 2D images).
+        np.array: List of patchified images 
     '''
-    # TODO: Add channel arg and ability to handle multichannel images
 
-    # Find the closest image size that can divide evenly into patches of patch_size
+    # Find closest size image divisible by patch size
     # (TODO: calculate patch size and step, and padding if necessary, such that images do not need to be cropped)
-    size_x = (image_list[0].shape[1]//patch_size)*patch_size
-    size_y = (image_list[0].shape[0]//patch_size)*patch_size
-    
-    # Empty array for patched images
-    patched_image_list = np.empty(
-        shape=[len(image_list), size_y//patch_size, size_x//patch_size, patch_size, patch_size],
-        dtype=image_list[0].dtype)
-    
-    for image,idx in zip(image_list,range(len(image_list))):
-        # Normalize?
-        
-        # Crop image
-        image = Image.fromarray(image)
-        image = image.crop((0 ,0, size_x, size_y))
+    im_width = image_list[0].shape[1]  # get image width
+    im_height = image_list[0].shape[0] # get image height
+    npat_x = im_width//patch_size  # number of patches that fit along width (x axis)
+    npat_y = im_height//patch_size # number of patches that fit along height (y axis)
+    size_x = npat_x*patch_size # image width (x len) that is divisible by patch_size
+    size_y = npat_y*patch_size # image height (y len) that is divisible by patch_size
 
-        # Patchify
-        image = np.array(image)
-        patches_img = patchify(image, (patch_size, patch_size), step=patch_size)
-        patched_image_list[idx,:,:,:,:] = patches_img
-    
-    # Now have a 5D array like [len image list, num patch rows, num patch cols, patch size, patch size].
-    # Reshape array to be 3D (i.e. 1D list of 2D images)
+    # Make empty array for patched images (6D)
+    patched_image_list = np.empty(shape=[len(image_list), npat_y,npat_x, patch_size,patch_size, channels])
+
+    # Loop through images
+    for image,idx in zip(image_list, range(len(image_list))):
+        tmp_list = []
+        
+        # Process each channel of the image separately
+        for c in range(channels):
+            im = image if channels==1 else image[:,:,c]
+
+            # Crop
+            im = Image.fromarray(im) # get a PIL Image to crop
+            im = im.crop((0, 0, size_x, size_y))
+            
+            # Patchify
+            im = np.array(im) # back to np array for patching
+            patches_im = patchify(im, (patch_size,patch_size), step=patch_size)
+            
+            # Save in temp list for recombination with other channels
+            tmp_list.append(patches_im)
+        
+        # Recombine channels to single multichan image again
+        patches_image = np.stack(tmp_list, axis=-1)
+        
+        # Add this patched multichannel image to the overall list
+        patched_image_list[idx,:,:,:,:,:] = patches_image
+
+    # Now the list still has the patches in the original image shape
+    # - current list shape: [len(image_list), npat_x, npat_y, patch_size, patch_size, channels]
+    # Reshape it to have a long list of patched images
+    # - desired list shape: [len*npat_x*npat_y, patch_size,patch_size, channels]
     s = patched_image_list.shape
-    patched_image_list = np.reshape(patched_image_list, (s[0]*s[1]*s[2], s[3], s[4]), order='C')
+    patched_image_list = np.reshape(patched_image_list, (s[0]*s[1]*s[2], s[3],s[4], s[5]), order='C')
     
+    # Squeeze for single channel images
+    if channels==1:
+        patched_image_list = np.squeeze(patched_image_list)
+
     return patched_image_list
