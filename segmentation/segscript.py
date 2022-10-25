@@ -35,10 +35,9 @@ import skimage.io as io
 import matplotlib.pyplot as plt
 import dataproc
 
-# Set paths
-ROOT_DIR = '/home/avery/Documents/2022/EEE4022_1' # absolute path of project directory
-datadir = 'Code/SampleData/COCOOutput-simulate'
+from params import  ROOT_DIR
 
+datadir = 'Code/SampleData/COCOOutput-simulate'
 # Structure or CellSium COCOOutput dir:
 #     COCOOutput-simulate
 #     ├─── annotations.json        # COCO formatted JSON file
@@ -67,3 +66,4 @@ plt.show()
 print('    Num masks:',len(masks))
 plt.imshow(masks[-1])
 plt.show()
+
