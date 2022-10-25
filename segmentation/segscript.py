@@ -35,7 +35,8 @@ import skimage.io as io
 import matplotlib.pyplot as plt
 import dataproc
 
-from params import  ROOT_DIR
+from params import  ROOT_DIR, \
+                    patch_size
 
 datadir = 'Code/SampleData/COCOOutput-simulate'
 # Structure or CellSium COCOOutput dir:
@@ -58,12 +59,45 @@ masks = list(x[:,:,0] for x in masks) # For the basic original U-Net we only wan
 print('Reading images')
 images = list(io.ImageCollection(os.path.join(ROOT_DIR, datadir, 'train/*'), conserve_memory=True))
 
-# Test that images and masks have been read in correctly
-print('Testing that images and masks have been read in correctly')
-print('    Num images:',len(images))
-plt.imshow(images[-1])
-plt.show()
-print('    Num masks:',len(masks))
-plt.imshow(masks[-1])
+# # Test that images and masks have been read in correctly
+# print('Testing that images and masks have been read in correctly')
+# print('    Num images:',len(images))
+# plt.imshow(images[-1])
+# plt.show()
+# print('    Num masks:',len(masks))
+# plt.imshow(masks[-1])
+# plt.show()
+
+# Patchify images
+print('Patchifying images')
+images_patched = dataproc.patch_images(images, patch_size)
+masks_patched = dataproc.patch_images(masks, patch_size)
+
+# Test - see a sample patch result for images and for masks
+print('Check patch results')
+
+fig,axs = plt.subplots(3,3)
+axs[0,0].imshow(images_patched[0], cmap='gray')
+axs[0,1].imshow(images_patched[1], cmap='gray')
+axs[0,2].imshow(images_patched[2], cmap='gray')
+axs[1,0].imshow(images_patched[3], cmap='gray')
+axs[1,1].imshow(images_patched[4], cmap='gray')
+axs[1,2].imshow(images_patched[5], cmap='gray')
+axs[2,0].imshow(images_patched[6], cmap='gray')
+axs[2,1].imshow(images_patched[7], cmap='gray')
+axs[2,2].imshow(images_patched[8], cmap='gray')
+fig.suptitle('Image patches')
 plt.show()
 
+fig,axs = plt.subplots(3,3)
+axs[0,0].imshow(masks_patched[0], cmap='gray')
+axs[0,1].imshow(masks_patched[1], cmap='gray')
+axs[0,2].imshow(masks_patched[2], cmap='gray')
+axs[1,0].imshow(masks_patched[3], cmap='gray')
+axs[1,1].imshow(masks_patched[4], cmap='gray')
+axs[1,2].imshow(masks_patched[5], cmap='gray')
+axs[2,0].imshow(masks_patched[6], cmap='gray')
+axs[2,1].imshow(masks_patched[7], cmap='gray')
+axs[2,2].imshow(masks_patched[8], cmap='gray')
+fig.suptitle('Mask patches')
+plt.show()

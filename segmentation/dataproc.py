@@ -10,6 +10,8 @@ import numpy as np
 import imantics
 import cv2
 from tqdm import tqdm
+from patchify import patchify, unpatchify
+from PIL import Image
 
 def draw_masks(im_data):
     '''
@@ -125,3 +127,57 @@ def coco_to_masks(cocodict, test=True):
             break
     
     return masks
+
+def patch_images(image_list, patch_size):
+    '''
+    Patchify a list of images.
+    
+    Patchify a list of images - the images will be cropped and split into patches, producing a 1D list of
+    all 2D patches (ordered so images can be recovered).
+    
+    Assumptions:  
+    - All images have the same shape  
+    - Images have only 1 channel  
+    - Patches are square  
+    
+    Process:  
+    1. Crop to a size divisible by the patch size  
+    2. Patchify  
+    
+    Args:
+        image_list (np.array list): List of the image series (any list type). Each image must be a 2D numpy array.  
+        patch_size (int): Size of patches (side length in pixels of each square patch)
+    
+    Returns:
+        np.array: 3D array of patchified images (1D list of 2D images).
+    '''
+    # TODO: Add channel arg and ability to handle multichannel images
+
+    # Find the closest image size that can divide evenly into patches of patch_size
+    # (TODO: calculate patch size and step, and padding if necessary, such that images do not need to be cropped)
+    size_x = (image_list[0].shape[1]//patch_size)*patch_size
+    size_y = (image_list[0].shape[0]//patch_size)*patch_size
+    
+    # Empty array for patched images
+    patched_image_list = np.empty(
+        shape=[len(image_list), size_y//patch_size, size_x//patch_size, patch_size, patch_size],
+        dtype=image_list[0].dtype)
+    
+    for image,idx in zip(image_list,range(len(image_list))):
+        # Normalize?
+        
+        # Crop image
+        image = Image.fromarray(image)
+        image = image.crop((0 ,0, size_x, size_y))
+
+        # Patchify
+        image = np.array(image)
+        patches_img = patchify(image, (patch_size, patch_size), step=patch_size)
+        patched_image_list[idx,:,:,:,:] = patches_img
+    
+    # Now have a 5D array like [len image list, num patch rows, num patch cols, patch size, patch size].
+    # Reshape array to be 3D (i.e. 1D list of 2D images)
+    s = patched_image_list.shape
+    patched_image_list = np.reshape(patched_image_list, (s[0]*s[1]*s[2], s[3], s[4]), order='C')
+    
+    return patched_image_list
