@@ -9,6 +9,7 @@ import json
 import numpy as np
 import imantics
 import cv2
+from tqdm import tqdm
 
 def draw_masks(im_data):
     '''
@@ -40,7 +41,7 @@ def draw_masks(im_data):
     
     # Inners: inners are obtained by erosion of cell masks
     # The value of gap is the side length of a square erosion kernel
-    # It should be just enough to separate touching objects - so 3 should be good almost always
+    # It should be just enough to separate touching objects
     # even values result in the eroded mask being offset from center (not sure why)
     gap = 3
     
@@ -52,11 +53,14 @@ def draw_masks(im_data):
     border_mask.setflags(write=True)
     inner_mask = np.zeros(border_mask.shape).astype(np.uint8)
     inner_mask.setflags(write=True)
+
+    # This stays blank as a base for when single object needs to be drawn
+    blank_mask = np.zeros((im_data.height, im_data.width, 3)).astype(np.uint8)
     
     # Loop through objects in image
     for annotation in im_data.iter_annotations():
         cell_mask = annotation.mask.draw(cell_mask, alpha=1, color='#ffffff') # cumulative
-        tmp_cell_mask = annotation.mask.draw(cell_mask, alpha=1, color='#ffffff') # single
+        tmp_cell_mask = annotation.mask.draw(blank_mask, alpha=1, color='#ffffff') # single
         
         tmp_cell_mask = cv2.cvtColor(tmp_cell_mask, cv2.COLOR_BGR2GRAY) # binary (0 - 255)
         tmp_cell_mask = np.pad(tmp_cell_mask, (pad,pad), mode='edge') # padded
@@ -94,8 +98,8 @@ def coco_to_masks(cocodict, test=True):
     '''
     Creates masks from a COCO-structured dictionary.
 
-    Takes a dictionary (in COCO JSON structure) and produces 3 masks (as single 
-    3-channel image) - one of the objects, one of thick object outlines, and one 
+    Takes a dictionary (in COCO JSON structure) and for each image produces 3 masks (as 
+    single 3-channel image) - one of the objects, one of thick object outlines, and one 
     of the inner parts of the objects.
 
     It is assumed that the images in the COCO file are square. Masks will not be correctly 
@@ -113,8 +117,9 @@ def coco_to_masks(cocodict, test=True):
     '''
     cocodict = imantics.Dataset.from_coco(cocodict) # convert to imantics type
 
-    for image in cocodict.iter_images(): # for each image
-        masks = draw_masks(image)
+    masks = []
+    for image in tqdm(cocodict.iter_images()): # for each image
+        masks.append(draw_masks(image))
         
         if test:
             break
