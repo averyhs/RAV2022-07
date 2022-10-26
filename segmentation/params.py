@@ -12,3 +12,9 @@ ROOT_DIR = '/home/avery/Documents/2022/EEE4022_1' # absolute path of project dir
 # Data processing #
 # --------------- #
 patch_size = 256 # size of patches for patchifying images to be sent to NN
+batch_size = 4
+
+# Model training #
+# -------------- #
+epochs = 4
+learning_rate = 0.000001
