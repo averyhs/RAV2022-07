@@ -80,7 +80,7 @@ model = Model()
 # Train!
 print('Commence Training!')
 t0 = process_time()
-model_out = model.train(data, savefile='model.pt')
+model_out = model.train(data, savefile='model.pt', recordfile='records.npz')
 t1 = process_time()
 
 print('Training time: {time}'.format(time=datetime.timedelta(seconds=t1-t0)))
