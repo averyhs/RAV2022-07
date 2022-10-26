@@ -99,13 +99,15 @@ def read_coco_file(coco_filepath):
     with open(coco_filepath) as f:
         return json.load(f)
 
-def coco_to_masks(cocodict, test=True):
+def coco_to_masks(cocodict, fout):
     '''
     Creates masks from a COCO-structured dictionary.
 
     Takes a dictionary (in COCO JSON structure) and for each image produces 3 masks (as 
     single 3-channel image) - one of the objects, one of thick object outlines, and one 
     of the inner parts of the objects.
+
+    The 3-channel masks are all saved in one numpy .npz file, with file path given as arg.
 
     It is assumed that the images in the COCO file are square. Masks will not be correctly 
     produced if images are not square.
@@ -115,20 +117,18 @@ def coco_to_masks(cocodict, test=True):
 
     Args:
         coco_json (dict): COCO-fomatted dictionary
-        test (boolean): Run in test mode if True (default is True)
+        fout (string): File path (name ending in .npz) to save the data
     
     Returns:
-        ndarray: Array of the masks for all the images, each with shape 3xImage_shape
+        ndarray: Array of the masks for all the images, each mask a 3 channel image
     '''
     cocodict = imantics.Dataset.from_coco(cocodict) # convert to imantics type
 
     masks = []
     for image in tqdm(cocodict.iter_images()): # for each image
         masks.append(draw_masks(image))
-        
-        if test:
-            break
     
+    np.savez(fout, *masks)
     return masks
 
 def patch_images(image_list, patch_size, channels=1):
