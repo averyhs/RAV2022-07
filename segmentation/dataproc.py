@@ -12,6 +12,9 @@ import cv2
 from tqdm import tqdm
 from patchify import patchify, unpatchify
 from PIL import Image
+from torch.utils.data import DataLoader
+
+from params import batch_size
 
 def draw_masks(im_data):
     '''
@@ -200,3 +203,20 @@ def patch_images(image_list, patch_size, channels=1):
         patched_image_list = np.squeeze(patched_image_list)
 
     return patched_image_list
+
+def load_data(images, masks, batch_size):
+    '''
+    Creates a DataLoader for the images and segmentation mask data.
+
+    Args:
+        images (list): The images
+        masks (list): The masks (ground truth)
+        batch_size (int): The batch size
+    
+    Returns:
+        torch.utils.data.Dataloader: A PyTorch Dataloader object for the data.
+    '''
+    X = images
+    Y = masks
+    dataloader = DataLoader(list(zip(X, Y)), batch_size=batch_size, shuffle=True)
+    return dataloader
