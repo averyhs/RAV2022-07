@@ -29,18 +29,26 @@ class Data:
             # How many patches to break image into? Calculate number of rows and cols of grid of patches
             # We're assuming step=patch_size
             # (TODO: calculate patch size and step, and padding if necessary, such that images do not need to be cropped)
-            sample_image = Y[0]
+            sample_image = X[0]
+
             image_width = sample_image.shape[1]
             image_height = sample_image.shape[0]
             self.num_patch_cols = image_width//patch_size  # number of patches that fit along width of image
             self.num_patch_rows = image_height//patch_size # number of patches that fit along height of image
 
-        self.X = self.patch(X, 1) if patch else X
-        self.Y = self.patch(Y, 3) if patch else Y
+        self.X = self.patch_s(X, 1) if patch else X
+        self.Y = self.patch_s(Y, 3) if patch else Y
 
         self.dataloader = DataLoader(list(zip(self.X, self.Y)), batch_size=batch_size, shuffle=True)
     
-    def patch(self, image_list, channels):
+    def patch(self):
+        '''
+        Patchify the data
+        '''
+        self.patch_s(self.X, 1)
+        self.patch_s(self.Y, 3)
+
+    def patch_s(self, image_list, channels):
         '''
         Patchify a list of images.
         
@@ -108,6 +116,48 @@ class Data:
             patched_image_list = np.squeeze(patched_image_list)
 
         return patched_image_list
+
+    def unpatch(self):
+        '''
+        Unpatchify the data
+        '''
+        self.X = self.unpatch_s(self.X, 1)
+        self.Y = self.unpatch_s(self.Y, 3)
+
+    def unpatch_s(self, patch_list, channels):
+        '''
+        Unpatchify a list of images.
+        
+        Unpatchify a list of images - images reconstructed from a list of patches. 
+        Supports multichannel and single channel images.
+        
+        Returns:
+            np.array: List of reconstructed (unpatchified) images 
+        '''
+        step = self.num_patch_rows*self.num_patch_cols
+        gridshape = (self.num_patch_cols,self.num_patch_rows, patch_size,patch_size)
+        imshape = (self.num_patch_cols*patch_size, self.num_patch_rows*patch_size)
+
+        # Make empty array for reconstructed images (4D)
+        image_list = np.empty(shape=[len(patch_list)//step, imshape[0],imshape[1], channels])
+
+        # Step through the list, idx0 = index corresponding to first patch of each image
+        for idx0, idx in zip(range(0, len(patch_list), step), range(len(patch_list)//step)):
+            patches = patch_list[idx0 : idx0+step]
+            
+            tmp_list = []
+            for c in range(channels):
+                ptch = patches if channels==1 else patches[:,:,:,c]
+                
+                ptch = np.reshape(ptch, gridshape)
+                tmp_list.append(unpatchify(ptch, imshape))
+            
+            image = np.stack(tmp_list, axis=-1)
+
+            # Add this patched multichannel image to the overall list
+            image_list[idx,:,:,:] = image
+
+        return image_list
 
     @classmethod
     def draw_masks(im_data):

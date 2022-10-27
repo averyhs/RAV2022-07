@@ -7,7 +7,6 @@
 import os
 import skimage.io as io
 import matplotlib.pyplot as plt
-import dataproc
 from Model import Model
 from Data import Data
 from time import process_time
@@ -52,5 +51,10 @@ masks = [masks[x] for x in masks.files]
 print('Processing and loading data')
 data = Data(images, masks)
 
-print(data.X.shape)
-print(data.Y.shape)
+data.unpatch()
+
+plt.imshow(data.X[0])
+plt.show()
+
+plt.imshow(data.Y[0])
+plt.show()
