@@ -9,12 +9,12 @@ import skimage.io as io
 import matplotlib.pyplot as plt
 import dataproc
 from Model import Model
+from Data import Data
 from time import process_time
 import numpy as np
+import datetime
 
-from params import  ROOT_DIR, \
-                    patch_size, \
-                    batch_size
+from params import  ROOT_DIR
 
 datadir = 'Code/SampleData/VerySmallExample/COCOOutput-simulate'
 # Structure or CellSium COCOOutput dir:
@@ -27,42 +27,30 @@ datadir = 'Code/SampleData/VerySmallExample/COCOOutput-simulate'
 #          ├─── ...
 #          └─── xxxxxxxxxxxx.png
 
-# Make masks from COCO file
+# Read the images <- X
+# --------------------
+print('Reading images')
+images = list(io.ImageCollection(os.path.join(ROOT_DIR, datadir, 'train/*'), conserve_memory=True))
+
+# Read the ground truth and Make the masks <- Y
+# ---------------------------------------------
 print('Creating masks')
-coco = dataproc.read_coco_file(os.path.join(ROOT_DIR, datadir, 'annotations.json'))
 mask_filepath = os.path.join(ROOT_DIR, datadir, 'masks.npz')
-masks = dataproc.coco_to_masks(coco, mask_filepath)
 
-masks_read = np.load(mask_filepath)
-print(masks_read.files)
-plt.imshow(masks_read['arr_0'][:,:,1])
-plt.show()
+# # No masks exist yet:
+# coco = dataproc.read_coco_file(os.path.join(ROOT_DIR, datadir, 'annotations.json'))
+# masks = dataproc.coco_to_masks(coco, mask_filepath)
 
-masks3 = masks
-masks = list(x[:,:,0] for x in masks) # For the basic original U-Net we only want the basic cell masks actually
+# Masks exist:
+masks = np.load(mask_filepath)
+masks = [masks[x] for x in masks.files]
 
-# # Read simulated microscope images into list via skimage ImageCollection (convert to list for consistency with masks)
-# print('Reading images')
-# images = list(io.ImageCollection(os.path.join(ROOT_DIR, datadir, 'train/*'), conserve_memory=True))
+# masks = list(x[:,:,0] for x in masks) # For the basic original U-Net we only want the basic cell masks actually
 
-# # Patchify images
-# print('Patchifying images')
-# images_patched = dataproc.patch_images(images, patch_size)
-# masks_patched = dataproc.patch_images(masks, patch_size)
-# # masks3_patched = dataproc.patch_images(masks3, patch_size, channels=3)
+# Data
+# ----
+print('Processing and loading data')
+data = Data(images, masks)
 
-# # Load data into DataLoader
-# print('Loading data')
-# data = dataproc.load_data(images_patched, masks_patched, batch_size)
-
-# # Create a Model instance
-# model = Model()
-
-# # Train!
-# print('Commence Training!')
-# t0 = process_time()
-# model_out = model.train(data, savefile='model.pt', recordfile='records.npz')
-# t1 = process_time()
-
-# print('Training time: {time}'.format(time=datetime.timedelta(seconds=t1-t0)))
-
+print(data.X.shape)
+print(data.Y.shape)
