@@ -45,8 +45,11 @@ class Data:
         '''
         Patchify the data
         '''
-        self.patch_s(self.X, 1)
-        self.patch_s(self.Y, 3)
+        self.X = self.patch_s(self.X, 1)
+        self.Y = self.patch_s(self.Y, 3)
+
+        # Update the dataloader
+        self.dataloader = DataLoader(list(zip(self.X, self.Y)), batch_size=batch_size, shuffle=True)
 
     def patch_s(self, image_list, channels):
         '''
@@ -123,6 +126,9 @@ class Data:
         '''
         self.X = self.unpatch_s(self.X, 1)
         self.Y = self.unpatch_s(self.Y, 3)
+
+        # Update the dataloader
+        self.dataloader = DataLoader(list(zip(self.X, self.Y)), batch_size=batch_size, shuffle=True)
 
     def unpatch_s(self, patch_list, channels):
         '''
