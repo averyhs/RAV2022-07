@@ -84,8 +84,8 @@ class MycoCellModel(SimulatedCell):
 
         offspring_a.position = [float(x-(length/4)*cos(alpha+division_angle)), float(y-(length/4)*sin(alpha+division_angle))]
         offspring_b.position = [float(x+(length/4)*cos(alpha)), float(y+(length/4)*sin(alpha))]
-        offspring_a.angle = self.angle
-        offspring_b.angle = self.angle + division_angle
+        offspring_a.angle = self.angle + division_angle
+        offspring_b.angle = self.angle
         # --------------------------
 
         if isinstance(self, WithLineage):
