@@ -5,18 +5,21 @@ import torch.optim as optim
 import numpy as np
 from tqdm import tqdm
 from datetime import date
-from UNet import UNet
+import torchvision.transforms as transforms
+from NN import Unetid
 
 from params import epochs, learning_rate
 
 
 class Model:
     def __init__(self):
-        self.net = UNet()
+        self.net = Unetid()
         self.loss_fcn = nn.MSELoss()
         self.optimizer = optim.Adam(self.net.parameters(), lr=learning_rate)
     
     def train(self, data, savefile=None, recordfile=None):
+        # TODO: train/test holdout
+
         # Load checkpoint file if provided
         if savefile is not None:
             checkpoint = torch.load(savefile)
@@ -28,7 +31,7 @@ class Model:
         # Load records file if provided
         if recordfile is not None:
             records = np.load(recordfile) # load .npz file
-            epoch_hist = records['epoch_hist']
+            epoch_hist = records['epoch_hist'].astype(np.int64)
             loss_hist = records['loss_hist']
         else:
             epoch_hist = np.array([])
@@ -57,9 +60,9 @@ class Model:
                 X_batch = X_batch.float()
                 Y_batch = Y_batch.float()
                 
-                # Unsqueeze to include 2nd dimension (arg of 1) representing CHANNEL (only have 1 channel)
-                X_batch = X_batch.unsqueeze(1)
-                Y_batch = Y_batch.unsqueeze(1)
+                # Correct for inconsistencies in how i've shaped things vs how Torch wants it
+                X_batch = X_batch.unsqueeze(1) # Unsqueeze single channel to include 2nd dimension (channel)
+                Y_batch = torch.permute(Y_batch, (0, 3, 1, 2)) # Put channel as second dim instead of last
                 
                 # TODO: Setup and enable multiprocessing (and GPU if available)
                 # ...multiprocessing...
@@ -96,9 +99,4 @@ class Model:
                     'loss': avg_loss
                 }, 'model.pt') # overwrites
 
-    def test():
-        pass
-
-    def run():
-        pass
 
