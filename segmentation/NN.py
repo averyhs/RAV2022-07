@@ -14,7 +14,7 @@ import torch.nn as nn
 
 class DoubleConv(nn.Module):
     '''
-    Two 2D convolution operations and a ReLU activation function.
+    Two consecutive 3x3 2D convolution operations and an ELU activation function.
 
     The first convolution increases (or decreases) the number of channels. 
     The second convolution has the same number of in and out channels. 
@@ -23,7 +23,7 @@ class DoubleConv(nn.Module):
     Attributes:
         conv1 (torch.nn.Conv2d): A 2D convolution with kernel size of 3, 'same' padding in reflect mode
         conv2 (torch.nn.Conv2d): A 2D convolution with kernel size of 3, 'same' padding in reflect mode
-        relu (torch.nn.ReLU): ReLU function
+        elu (torch.nn.ELU): ELU function
     '''
 
     def __init__(self, c_in, c_out):
@@ -37,7 +37,7 @@ class DoubleConv(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv2d(c_in, c_out, kernel_size=3, padding='same', padding_mode='reflect')
         self.conv2 = nn.Conv2d(c_out, c_out, kernel_size=3, padding='same', padding_mode='reflect')
-        self.relu = nn.ReLU()
+        self.elu = nn.ELU()
         
     def forward(self, inputs):
         '''
@@ -47,16 +47,16 @@ class DoubleConv(nn.Module):
             inputs (torch.Tensor): Input to the DoubleConv
         '''
         x = self.conv1(inputs)
-        x = self.relu(x)
+        x = self.elu(x)
         x = self.conv2(x)
-        x = self.relu(x)
+        x = self.elu(x)
         return x
 
 class EncoderBlock(nn.Module):
     '''
     Encoder block for a U-Net.
 
-    The encoder block consists of a double convolution and a max pooling operation. 
+    The encoder block consists of a double convolution and a 2x2 max pooling operation. 
     It reduces image size and increases channel depth, capturing context.
 
     Attributes:
@@ -91,7 +91,8 @@ class DecoderBlock(nn.Module):
     '''
     Decoder block for a U-Net.
 
-    The decoder block consists of a transposed convolution operation followed by a double convolution. 
+    The decoder block consists of a 2x2 transposed convolution operation followed 
+    by a double convolution. 
     Between the two operations, the image is concatenated with another image. 
     It increases image size and decreases channel depth, localizing details.
 
@@ -154,6 +155,40 @@ class Bottleneck(nn.Module):
         x = self.conv(inputs)
         return x
 
+class OutConv(nn.Module):
+    '''
+    A 1x1 2D convolution operation with a sigmoid activation function.
+
+    This is the output layer of a U-Net in the U-Net-Id architecture.
+
+    Attributes:
+        conv (torch.nn.Conv2d): A 2D convolution with kernel size of 1, 'same' padding in reflect mode
+        sigmoid (torch.nn.Sigmoid): Sigmoid function
+    '''
+    
+    def __init__(self, c_in, c_out):
+        '''
+        Initializes class attributes.
+
+        Args:
+            c_in (int): Number of channels at the input of the OutConv block.
+            c_out (int): Number of channels at the output of the OutConv block.
+        '''
+        super().__init__()
+        self.conv = nn.Conv2d(c_in, c_out, kernel_size=1, padding='same', padding_mode='reflect')
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, inputs):
+        '''
+        Defines forward pass of OutConv.
+
+        Args:
+            inputs (torch.Tensor): Input to the OutConv
+        '''
+        x = self.conv(inputs)
+        x = self.sigmoid(x)
+        return x
+
 
 
 # U-NET #
@@ -178,8 +213,8 @@ class UNet(nn.Module):
         self.d3 = DecoderBlock(256, 128)
         self.d4 = DecoderBlock(128, 64)
         
-        # Classifier
-        self.outputs = nn.Conv2d(64, 1, kernel_size=1, padding=0)
+        # Output layer
+        self.out = OutConv(64, 1)
     
     def forward(self, inputs):
         
@@ -199,5 +234,5 @@ class UNet(nn.Module):
         d4 = self.d4(d3, s1)
         
         # Classifier
-        outputs = self.outputs(d4)
+        outputs = self.out(d4)
         return outputs
