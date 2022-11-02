@@ -7,7 +7,11 @@
 
 import torch
 import torch.nn as nn
+import numpy as np
 
+##########
+## UNET ##
+##########
 
 # NETWORK COMPONENTS #
 # ------------------ #
@@ -236,3 +240,76 @@ class UNet(nn.Module):
         # Classifier
         outputs = self.out(d4)
         return outputs
+
+
+#####################
+## FULL UNETID NET ##
+#####################
+
+# Clasees for the final part of the U-Net-Id.
+# TODO: Give them better names and docs (integrate into rest of file structure)
+
+class BlueConv(nn.Module):
+    # 3x3 kernel 2D convolution with ELU activation fcn
+    def __init__(self, c_in, c_out):
+        super().__init__()
+        self.conv = nn.Conv2d(c_in, c_out, kernel_size=3, padding='same', padding_mode='reflect')
+        self.elu = nn.ELU()
+    
+    def forward(self, inputs):
+        x = self.conv(inputs)
+        x = self.elu(x)
+        return x
+
+class RedConv(nn.Module):
+    # 1x1 kernel 2D convolution with sigmoid activation fcn
+    def __init__(self, c_in, c_out):
+        super().__init__()
+        self.conv = nn.Conv2d(c_in, c_out, kernel_size=1, padding='same', padding_mode='reflect')
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, inputs):
+        x = self.conv(inputs)
+        x = self.sigmoid(x)
+        return x
+
+
+# U-Net-Id #
+# -------- #
+
+class Unetid(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        # U-Nets (same architecture, different params)
+        self.unet_a = UNet()
+        self.unet_b = UNet()
+        self.unet_c = UNet()
+
+        # Second section of network
+        self.conv1_a = BlueConv(3, 64)
+        self.conv2_a = BlueConv(64, 32)
+        self.conv3_a = RedConv(32, 1)
+
+        self.conv1_b = BlueConv(3, 64)
+        self.conv2_b = BlueConv(64, 32)
+        self.conv3_b = RedConv(32, 1)
+        
+        self.conv1_c = BlueConv(3, 64)
+        self.conv2_c = BlueConv(64, 32)
+        self.conv3_c = RedConv(32, 1)
+
+    def forward(self, inputs):
+
+        xa = self.unet_a(inputs)
+        xb = self.unet_b(inputs)
+        xc = self.unet_c(inputs)
+
+        inputsnext = torch.cat([xa, xb, xc], axis=1)
+
+        ya = self.conv3_a(self.conv2_a(self.conv1_a(inputsnext)))
+        yb = self.conv3_b(self.conv2_b(self.conv1_b(inputsnext)))
+        yc = self.conv3_c(self.conv2_c(self.conv1_c(inputsnext)))
+
+        output = torch.cat([ya, yb, yc], axis=1)
+        return output
