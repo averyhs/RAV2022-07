@@ -17,8 +17,7 @@ class Data:
         Written for use with U-Net-Id style network.
 
         Assumptions:
-        - X consists of 1 channel images
-        - Y consists of 3 channel images (object, border, inner masks)
+        - X and Y are single channel 2D images
         - X and Y have same shape
         
         Args:
@@ -41,17 +40,27 @@ class Data:
 
         self.dataloader = DataLoader(list(zip(self.X, self.Y)), batch_size=batch_size, shuffle=True)
     
-    def patch(self):
+    def patch(self, xchan=1, ychan=3):
         '''
-        Patchify the data
+        Patchify the data (updates X, Y, dataloader). To be used after initialisation.
         '''
-        self.X = self.patch_s(self.X, 1)
-        self.Y = self.patch_s(self.Y, 3)
+        self.X = self.patch_s(self.X, xchan)
+        self.Y = self.patch_s(self.Y, ychan)
+
+        # Update the dataloader
+        self.dataloader = DataLoader(list(zip(self.X, self.Y)), batch_size=batch_size, shuffle=True)
+    
+    def unpatch(self, xchan=1, ychan=3):
+        '''
+        Unpatchify the data (updates X, Y, dataloader). To be used after initialisation.
+        '''
+        self.X = self.unpatch_s(self.X, xchan)
+        self.Y = self.unpatch_s(self.Y, ychan)
 
         # Update the dataloader
         self.dataloader = DataLoader(list(zip(self.X, self.Y)), batch_size=batch_size, shuffle=True)
 
-    def patch_s(self, image_list, channels):
+    def patch_s(self, image_list, channels=1):
         '''
         Patchify a list of images.
         
@@ -120,17 +129,7 @@ class Data:
 
         return patched_image_list
 
-    def unpatch(self):
-        '''
-        Unpatchify the data
-        '''
-        self.X = self.unpatch_s(self.X, 1)
-        self.Y = self.unpatch_s(self.Y, 3)
-
-        # Update the dataloader
-        self.dataloader = DataLoader(list(zip(self.X, self.Y)), batch_size=batch_size, shuffle=True)
-
-    def unpatch_s(self, patch_list, channels):
+    def unpatch_s(self, patch_list, channels=1):
         '''
         Unpatchify a list of images.
         
