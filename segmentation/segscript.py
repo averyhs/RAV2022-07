@@ -9,8 +9,8 @@ import skimage.io as io
 import matplotlib.pyplot as plt
 from Model import Model
 from Data import Data
-from time import process_time
 import numpy as np
+import timeit
 import datetime
 
 datadir = '../../SampleData/VerySmallExample'
@@ -86,8 +86,8 @@ model = Model() # create a Model instance
 # Train
 # ------
 print('Commence Training!')
-t0 = process_time()
+t0 = timeit.default_timer()
 model_out = model.train(data.dataloader)#, savefile='model.pt', recordfile='records.npz')
-t1 = process_time()
+t1 = timeit.default_timer()
 
 print('Training time: {time}'.format(time=datetime.timedelta(seconds=t1-t0)))
