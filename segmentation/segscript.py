@@ -59,8 +59,6 @@ else:
     coco = Data.read_coco_file(os.path.join(datadir, 'annotations.json'))
     masks = Data.coco_to_masks(coco, masks_filepath)
 
-masks = [masks[x][:,:,1] for x in range(len(masks))] # single channel for now
-
 # Data
 # ----
 print('Processing and loading data')
@@ -87,7 +85,7 @@ model = Model() # create a Model instance
 # ------
 print('Commence Training!')
 t0 = timeit.default_timer()
-model_out = model.train(data.dataloader)#, savefile='model.pt', recordfile='records.npz')
+model_out = model.train(data.dataloader, savefile='model.pt', recordfile='records.npz')
 t1 = timeit.default_timer()
 
 print('Training time: {time}'.format(time=datetime.timedelta(seconds=t1-t0)))
