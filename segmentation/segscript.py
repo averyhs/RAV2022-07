@@ -13,11 +13,11 @@ import numpy as np
 import timeit
 import datetime
 
-datadir = '../../SampleData/VerySmallExample'
+datadirs = ['../../SampleData/VerySmallExample', '../../SampleData/S01_nodrugs', '../../SampleData/S02_withdrug']
 
 # Structure of data directory:
-#     SampleData <all_data>
-#     ├─── VerySmallExample <datadir>
+#     SampleData
+#     ├─── VerySmallExample
 #     |    ├─── images
 #     |    |   ├─── 000000000000.png
 #     |    |   ├─── 000000000001.png
@@ -25,39 +25,40 @@ datadir = '../../SampleData/VerySmallExample'
 #     |    |   ├─── ...
 #     |    |   └─── xxxxxxxxxxxx.png
 #     |    ├─── annotations.json
-#     |    ├─── masks.npz             # may not be here if it has not yet been generated
-#     |    └─── VerySmallExample.zip
-#     ├─── <other_datadir>
+#     |    └─── masks.npz             # may not be here if it has not yet been generated
+#     ├─── S01
+#     |    ├─── images
+#     |    └─── ...
+#     ├─── S02
 #     └─── ...
 
+images = []
+masks = []
 
-# Structure of CellSium COCOOutput dir:
-#     COCOOutput-simulate
-#     ├─── annotations.json        # COCO formatted JSON file
-#     └─── train                   # simulated microscope images
-#          ├─── 000000000000.png
-#          ├─── 000000000001.png
-#          ├─── 000000000002.png
-#          ├─── ...
-#          └─── xxxxxxxxxxxx.png
+for d in datadirs:
+    print(d)
 
-# Read the images (X)
-# -------------------
-print('Reading images')
-images = list(io.ImageCollection(os.path.join(datadir, 'images/*'), conserve_memory=True))
+    # Read the images (X)
+    # -------------------
+    print('    Reading images')
+    d_images = list(io.ImageCollection(os.path.join(d, 'images/*'), conserve_memory=True))
 
-# Read the ground truth and 
-# Read or create masks (Y)
-# -------------------------
-masks_filepath = os.path.join(datadir, 'masks.npz')
-if os.path.exists(masks_filepath):
-    print('Reading masks')
-    masks = np.load(masks_filepath)
-    masks = [masks[x] for x in masks.files]
-else:
-    print('Creating masks')
-    coco = Data.read_coco_file(os.path.join(datadir, 'annotations.json'))
-    masks = Data.coco_to_masks(coco, masks_filepath)
+    # Read the ground truth and 
+    # Read or create masks (Y)
+    # -------------------------
+    d_masks_filepath = os.path.join(d, 'masks.npz')
+    if os.path.exists(d_masks_filepath):
+        print('    Reading masks')
+        d_masks = np.load(d_masks_filepath)
+        d_masks = [d_masks[x] for x in d_masks.files]
+    else:
+        print('    Creating masks')
+        coco = Data.read_coco_file(os.path.join(d, 'annotations.json'))
+        d_masks = Data.coco_to_masks(coco, d_masks_filepath)
+
+    # Add to total dataset
+    images.extend(d_images)
+    masks.extend(d_masks)
 
 # Data
 # ----
