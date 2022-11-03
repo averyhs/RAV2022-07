@@ -45,6 +45,11 @@ class Model:
         else:
             e = -1
         
+        # BUG: EPOCH NUMBER - updating loss history and checkpointing used to happen once at the end of every epoch.
+        #      Now because of large batches and long epoch times, it happens multiple times in the middle of an epoch.
+        #      The problem is, when picking up where we left off, we add 1 to the last logged epoch. This now gives 
+        #      inaccurate number of epochs (records say there have been more epochs than have actually been completed).
+        
         for epoch in range(e+1, epochs+e+1):
             print('Epoch {}'.format(epoch+1))
             avg_loss = 0 # Reset average loss
@@ -82,21 +87,29 @@ class Model:
                 # Compute average loss for this epoch
                 avg_loss += loss / len(data)
                 
+                # Update loss records and save checkpoint* every 5 batches
+                # BUG: EPOCH NUMBER - updating loss history and checkpointing used to happen once at the end of every epoch.
+                #      Now because of large batches and long epoch times, it happens multiple times in the middle of an epoch.
+                #      The problem is, when picking up where we left off, we add 1 to the last logged epoch. This now gives 
+                #      inaccurate number of epochs (records say there have been more epochs than have actually been completed).
+                if b%5==0:
+                    # Update loss records
+                    epoch_hist = np.append(epoch_hist, epoch)
+                    loss_hist = np.append(loss_hist, avg_loss.item())
+                    np.savez('records.npz', epoch_hist=epoch_hist, loss_hist=loss_hist)
+
+                    # Save checkpoint if loss is new min
+                    if avg_loss.item() == min(loss_hist):
+                        torch.save({
+                            'epoch': epoch,
+                            'model_state_dict': self.net.state_dict(),
+                            'optimizer_state_dict': self.optimizer.state_dict(),
+                            'loss': avg_loss
+                        }, 'model.pt') # overwrites
+
                 b=b+1 # Increment num batches
             
-            # Update loss records
-            epoch_hist = np.append(epoch_hist, epoch)
-            loss_hist = np.append(loss_hist, avg_loss.item())
-            np.savez('records.npz', epoch_hist=epoch_hist, loss_hist=loss_hist)
-            
-            # Save checkpoint (if loss is new min)
+            # Display average loss of epoch
             print('avg_loss:',avg_loss.item())
-            if avg_loss.item() == min(loss_hist):
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': self.net.state_dict(),
-                    'optimizer_state_dict': self.optimizer.state_dict(),
-                    'loss': avg_loss
-                }, 'model.pt') # overwrites
 
 
