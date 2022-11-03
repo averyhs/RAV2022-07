@@ -98,6 +98,7 @@ class Data:
             # Process each channel of the image separately
             for c in range(channels):
                 im = image if channels==1 else image[:,:,c]
+                im = np.squeeze(im)
 
                 # Crop
                 im = Image.fromarray(im) # get a PIL Image to crop
@@ -165,7 +166,7 @@ class Data:
         return image_list
 
     @classmethod
-    def draw_masks(im_data):
+    def draw_masks(cls, im_data):
         '''
         Create object mask, border mask, inner mask for an image (Intended for internal use).
 
@@ -236,7 +237,7 @@ class Data:
         return np.stack((cell_mask, border_mask, inner_mask), axis=-1)
 
     @classmethod
-    def read_coco_file(coco_filepath):
+    def read_coco_file(cls, coco_filepath):
         '''
         Read a COCO file and return a Python dictionary.
 
