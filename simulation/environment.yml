@@ -217,4 +217,3 @@ dependencies:
   - zlib=1.2.13=h166bdaf_4
   - zlib-ng=2.0.6=h166bdaf_0
   - zstd=1.5.2=h6239696_4
-prefix: /home/avery/.conda/envs/cellsimulation-cellsium
