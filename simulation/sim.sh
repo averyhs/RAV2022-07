@@ -27,13 +27,6 @@ python -m cellsium simulate \
     -t NewCellWidthAbsoluteMax=1.0 \
     -t NewCellWidthAbsoluteMin=0.3 \
     \
-    -t NewCellBendLowerLower=-0.007 \
-    -t NewCellBendLowerUpper=0.007 \
-    -t NewCellBendOverallLower=-0.007 \
-    -t NewCellBendOverallUpper=0.007 \
-    -t NewCellBendUpperLower=-0.007 \
-    -t NewCellBendUpperUpper=0.007 \
-    \
     -t LuminanceBackground=0.35 \
     -t LuminanceCell=0.2 \
     \
