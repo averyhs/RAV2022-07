@@ -1,6 +1,7 @@
 Mycobacterial colony simulation and segmentation from time-lapse microscopy
 ===========================================================================
-This project is an initial exploration of image analysis methods for microscope images of microcolonies of rod-shaped mycobacteria, in 3 avenues. 
+### Project overview
+This project is an initial exploration of image analysis methods for microscope images of microcolonies of rod-shaped mycobacteria, in 3 avenues. The objective is ultimately to identify and characterize each individual cell.
 
 ```
          --- Simulation ...
@@ -12,91 +13,92 @@ o ----                          --- Image filtering ...
                                 --- Machine learning ...
 ```
 
-Ground truth data is a challenge (we want it for testing how good a method is, and for training machine learning models). Simulation is an option for obtaining data for training and testing. How closely can we get the artificially generated images to resemble the actual microscope images?
+Simulation was explored to address the challenge of obtaning or generating ground truth data. We want ground truth data for testing how good a segmentation method is, and for training machine learning models. Can we artificially generate images to that resemble the actual microscope images closely enough to be useful?
 
-The objective is to identify and characterize each 
+Segmentation is the first step to identifying and characterizing individual cells. Image segmentation is the process of partitioning an image into regions of pixels that belong to different classes (semantic segmentation), or different instances of objects (instance segmentation). One method investigated was using an image filter that exploited the characteristics of the particular images dealt with in this project (cells are small and width doesn't vary much between instances, so maybe we can isolate the spatial frequency occupied by the cells). The other method was using a machine learning architecture called [U-Net-Id](https://doi.org/10.3390/rs12101544) (_F. H. Wagner, R. Dalagnol, Y. Tarabalka, T. Y. Segantine, R. Thomé, and M. C. Hirye, "U-Net-Id, an instance segmentation model for building extraction from satellite images — case study in the joanópolis city, brazil," Remote Sensing, vol. 12, no. 10, p. 1544, 2020._), which was developed for segmentaing satellite images of buildings - a different application with comparable image characteristics. 
 
-Setting up and preprocessing the data
--------------------------------------
-This is the process i followed to prepare the data i used in the project.
+This documentation describes the technical aspects of the projects and how to use it. It does not deal with associated theory and applications.
 
-I started with TIFF files taken directly from the microscope, showing different fields of view of the platform the microcolonies were grown on. Each TIFF file contained 80 frames of a timelapse. I aligned the frames, because there was drifting during the microscope imaging so there was some misalginment between frames. I then zoomed in and extracted a portion of the image where the microcolonies became dense, but still had fairly good contrast and definition (it's very difficult to segment when the microcolonies get super large, and those cases were not of the most interest for analysis anyway).
+### Notes on scripts and environments
+* Shell scripts and commands are written for Linux shells (Bash, Zsh, etc) so if you're using something different you may need to make some changes.
 
+* All other scripts are Python3.
 
-### _Sidenote - other file type to TIFF_
+* Each folder (images, simulation, segmentation) contains a YAML file `environment.yml` that can be used to create the environment needed for each part of the project. The environments are separated to allow any part of the project to be used independently in other aplications, but it may be a little clumsy when running everything together.
 
-_Early on i was using JPG images. I wrote a Python script to convert a series of JPG images to a single TIFF file. If you want to follow my process using a different image file format it may be of interest. I will include the JPG 2 TIFF script and also a modified version that works for PNGs._
+* Using conda, each environment can be created by running `conda env create -f environment.yml` At the end of the setup, the output should include a message prompting you to activate the environment. The name of the environment can be seen in that message or at the top of the YAML file.
 
-_Specify the name folder where the images are in the `IMDIR` variable in line 7. Note that the images will be sorted by filename._
+* Most of the code has undergone only just enough testing to see that it would meet my needs for the project. 
 
-_For JPG images:_
+Setting up and working with images (🗀 images)
+----------------------------------------------
+
+### Selecting field of view
+When selecting a smaller field of view than the original microscope images i used MicrobeJ to select and export the series of zoomed in frames, but other tools  could also be used. I generally looked for an area where there were some solitary cells and some dense microcolonies, but not so dense that cells were difficult to differentiate by eye.
+
+### Alignment of images
+There is drifting during microscope imaging over time, so there is some misalignment between frames. The alignment script I used (`image_alignment.py`) is a script written by Heather S. Deter and Dr. Nicholas C. Butzin for the CellTracking project, and can be found in [https://github.com/hdeter/CellTracking](https://github.com/hdeter/CellTracking). It works very well, but takes a folder of images, not a multi-frame TIFF. So I have written `tiffsep.py` and `tiffjoin.py` to convert between the two (folder of single-frame TIFF files <-> multi-frame TIFF file). 
+
+If starting with a TIFF file containing all frames of the series, run the following commands _(commands for bash or zsh)_:
+
+1. Separate the TIFF file into multiple images. (You will be prompted for the name of the input file. The output folder for the separation will be called `separated_tiff_images`. )
 ```
-import numpy as np
-from skimage import io
-from skimage import exposure
-import os
-
-# Specify directory
-IMDIR = 'folder-name' # path to image directory, relative to ROOTDIR
-
-# Input image files
-jpgs = list(os.path.join(IMDIR,f) for f in os.listdir(IMDIR) if f.endswith('.jpg')) # list of jpgs (as paths) in IMDIR
-jpgs.sort()
-
-# Get required shape of np array
-sample_img = io.imread(jpgs[0])
-imshape = np.shape(sample_img)
-
-# Read jpg images and add to numpy stack (specifying datatype)
-imstack = np.empty([len(jpgs), imshape[0], imshape[1]], dtype=sample_img.dtype)
-for n in range(len(jpgs)):
-    img = io.imread(jpgs[n])
-    imstack[n,:,:] = img
-
-# np array to tiff
-io.imsave('images.tiff', imstack)
+python tiffsep.py
 ```
 
-_For PNG images:_
+2. Align the images frame-to-frame (I'll call the output folder `aligned`)
 ```
-import numpy as np
-from skimage import io
-from skimage import exposure
-import os
+python image_alignment.py separated_tiff_images aligned
+```
 
-# Specify directory
-IMDIR = 'folder-name' # path to image directory, relative to ROOTDIR
+3. Join the images back into a single file. (You will be prompted for the name of the input folder. The output file will be called `joined_tiff_ims.py`. )
+```
+python tiffjoin.py
+```
 
-# Input image files
-pngs = list(os.path.join(IMDIR,f) for f in os.listdir(IMDIR) if f.endswith('.png')) # list of pngs (as paths) in IMDIR
-pngs.sort()
+### Viewing timelapse as video
+`makevideo.py` converts a series of frames, given as either a single TIFF file or a folder of images, to MP4 and GIF.
 
-# Get required shape of np array
-sample_img = io.imread(pngs[0])
-imshape = np.shape(sample_img)
+You will need to have [FFmpeg](https://ffmpeg.org/) installed. Note that this Python script runs shell commands. 
 
-# Read png images and add to numpy stack (specifying datatype)
-imstack = np.empty([len(pngs), imshape[0], imshape[1], imshape[2]], dtype=sample_img.dtype)
-for n in range(len(pngs)):
-    img = io.imread(pngs[n])
-    imstack[n,:,:,:] = img
+Run the following command (from within the `images` directory):
+```
+python makevideo.py [in] [out]
+```
 
-# np array to tiff
-io.imsave('images.tiff', imstack)
+`[in]` can be a single multi-frame TIFF file or a folder of images named in chronological order. `[out]` is the folder to which the output files will be written. 
+
+If the output folder does not exist it will not be created. Note that files with the same names as the output files (`cell_timelapse.mp4`, `cell_timelapse.gif`) will be overwritten.
+
+### PNG to TIFF
+The CellSium simulation script outputs PNG (CellSium can be made to output TIFF, but the color of the images changes, possibly due to datatype conversion). `pngseries2tiff.py` converts the CellSium output to a TIFF file.
+
+Use
+```
+python pngseries2tiff.py [folder containing the PNG images]
 ```
 
 Simulation
 ----------
-The simulation is performed by CellSium
+The simulation is performed by [CellSium](https://cellsium.readthedocs.io/). From its documentation, "CellSium is a cell simulator developed for the primary application of generating realistically looking images of bacterial microcolonies, which may serve as ground truth for machine learning training processes." 
+
+### Running the simulation
+
+
+
+### Modifying the cell model and simulation parameters
 
 
 
 
 
+~
 
+~
 
+~
 
-
+~
 
 
 
